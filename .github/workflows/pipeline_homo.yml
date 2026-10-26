@@ -1,39 +1,57 @@
-
 name: Ambiente de Homologação
 
 on:
   push:
-    branches: ["homologacao"]
+    branches: [ "homologacao" ]
   pull_request:
-    branches: ["homologacao"]
+    branches: [ "homologacao" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout do codigo
-        uses: actions/checkout@v4
-
+    - name: Checkout do codigo
+      uses: actions/checkout@v4
   Imagem:
     needs: build
     runs-on: ubuntu-latest
+    steps:
+    - name: Docker Login 
+      uses: docker/login-action@v4.1.0
+      with:
+          username: ${{secrets.DOCKER_USER}}
+          password: ${{secrets.DOCKER_PWD}}
+    
+    - name: Configurar o Docker na VM
+      uses: docker/build-push-action@v7.1.0
+      with:
+          push: true
+          tags: |
+              jeffsilva03/homo_leopoldina:latest
+              jeffsilva03/homo_leopoldina:${{github.sha}}
+
+  DEPLOY:
+    name: Implantando na EC2
+    runs-on: ubuntu-latest
+    needs: Imagem
 
     steps:
-      - name: Checkout do codigo
-        uses: actions/checkout@v4
-
-      - name: Docker Login
-        uses: docker/login-action@v3
+      - name: Deploy na EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_PWD }}
+          host: ${{secrets.EC2_HOST}}
+          username: ${{secrets.EC2_USER}}
+          key: ${{secrets.EC2_KEY}}
+          script: |
+            # teste de acesso
+            echo "Acesso liberado"
+            
+            # fazer o pull da imagem dockerhub
+            sudo docker pull jeffsilva03/homo_leopoldina:latest
 
-      - name: Configurar o Docker na VM
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: ${{ github.event_name == 'push' }}
-          tags: |
-            jeffsilva03/homo_leopoldina:latest
-            jeffsilva03/homo_leopoldina:${{ github.sha }}
+            # Parar o app atual remover o container
+            sudo docker stop homo_leopoldina 2>/dev/null || true
+            sudo docker rm homo_leopoldina 2>/dev/null || true
+
+            # Publicar novo container
+            sudo docker run --name homo_leopoldina -d -p 80:8080 jeffsilva03/homo_leopoldina:latest
