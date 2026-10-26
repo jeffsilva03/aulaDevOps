@@ -1,0 +1,39 @@
+
+name: Ambiente de Homologação
+
+on:
+  push:
+    branches: ["homologacao"]
+  pull_request:
+    branches: ["homologacao"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+  Imagem:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PWD }}
+
+      - name: Configurar o Docker na VM
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            jeffsilva03/homo_leopoldina:latest
+            jeffsilva03/homo_leopoldina:${{ github.sha }}
