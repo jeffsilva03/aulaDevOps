@@ -54,4 +54,4 @@ jobs:
             sudo docker rm homo_leopoldina 2>/dev/null || true
 
             # Publicar novo container
-            sudo docker run --name homo_leopoldina -d -p 80:8080 jeffsilva03/homo_leopoldina:latest
+            sudo docker run --name homo_leopoldina -d -p 80:80 jeffsilva03/homo_leopoldina:latest
